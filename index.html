@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOYAGER — Conecta las Constelaciones</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#000011; overflow:hidden; font-family:'Orbitron',monospace; color:#fff; user-select:none; }
+    canvas { display:block; position:fixed; top:0; left:0; }
+
+    /* ── SCREENS ── */
+    .screen {
+      position:fixed; inset:0; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      background:rgba(0,0,17,0.85); z-index:10; transition:opacity .6s;
+    }
+    .screen.hidden { opacity:0; pointer-events:none; }
+
+    /* ── INTRO ── */
+    #intro-screen { gap:18px; text-align:center; }
+    .game-title {
+      font-size:clamp(48px,10vw,120px); font-weight:900; letter-spacing:.25em;
+      background:linear-gradient(135deg,#4fc3f7 0%,#fff 50%,#ffd700 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+      animation:titlePulse 3s ease-in-out infinite;
+    }
+    @keyframes titlePulse {
+      0%,100%{ filter:drop-shadow(0 0 20px #4fc3f7aa); }
+      50%    { filter:drop-shadow(0 0 50px #4fc3f7ff) drop-shadow(0 0 80px #4fc3f7aa); }
+    }
+    .game-subtitle { font-size:clamp(11px,2vw,17px); letter-spacing:.5em; color:#4fc3f7; margin-top:-10px; }
+    .instructions  { max-width:500px; font-size:12px; line-height:2; color:#aaa; letter-spacing:.05em; }
+    .instructions span { color:#4fc3f7; }
+    .intro-buttons { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:4px; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      padding:13px 36px; font-family:'Orbitron',monospace; font-size:13px; font-weight:700;
+      letter-spacing:.18em; border:2px solid #4fc3f7; background:transparent; color:#4fc3f7;
+      cursor:pointer; transition:all .3s; text-transform:uppercase; position:relative; overflow:hidden;
+    }
+    .btn::before {
+      content:''; position:absolute; inset:0; background:#4fc3f7;
+      transform:scaleX(0); transform-origin:left; transition:transform .3s; z-index:-1;
+    }
+    .btn:hover { color:#000011; }
+    .btn:hover::before { transform:scaleX(1); }
+    .btn-gold   { border-color:#ffd700; color:#ffd700; }
+    .btn-gold::before   { background:#ffd700; }
+    .btn-purple { border-color:#bb86fc; color:#bb86fc; }
+    .btn-purple::before { background:#bb86fc; }
+    .btn-danger { border-color:#ff4444; color:#ff4444; }
+    .btn-danger::before { background:#ff4444; }
+    .btn-sm { padding:9px 20px; font-size:11px; }
+
+    /* ── HUD ── */
+    #hud {
+      position:fixed; top:0; left:0; right:0; padding:12px 24px;
+      display:flex; justify-content:space-between; align-items:center;
+      z-index:5; background:linear-gradient(to bottom,rgba(0,0,17,.9) 0%,transparent 100%);
+      pointer-events:none;
+    }
+    #hud.hidden { display:none; }
+    .hud-left  { display:flex; flex-direction:column; gap:2px; }
+    .hud-center{ text-align:center; }
+    .hud-right { text-align:right; display:flex; flex-direction:column; gap:2px; align-items:flex-end; }
+    .constellation-name { font-size:clamp(13px,2.5vw,20px); font-weight:700; color:#fff; letter-spacing:.15em; }
+    .level-label   { font-size:11px; color:#4fc3f7; letter-spacing:.2em; }
+    .score-value   { font-size:clamp(18px,3vw,30px); font-weight:900; color:#ffd700; }
+    .score-label   { font-size:10px; color:#aaa; letter-spacing:.2em; }
+    .timer-value   { font-size:clamp(16px,2.5vw,26px); font-weight:700; color:#4fc3f7; }
+    .difficulty-stars { font-size:12px; color:#ffd700; }
+    .connections-left { font-size:11px; color:#aaa; letter-spacing:.1em; }
+
+    /* ── PAUSE BUTTON ── */
+    #btn-pause {
+      position:fixed; top:14px; right:24px; z-index:20; width:42px; height:42px;
+      border:2px solid #4fc3f780; background:rgba(0,0,17,.75); color:#4fc3f7;
+      font-family:'Orbitron',monospace; font-size:18px; cursor:pointer;
+      border-radius:4px; display:none; align-items:center; justify-content:center;
+      transition:all .2s; backdrop-filter:blur(4px);
+    }
+    #btn-pause:hover { background:#4fc3f7; color:#000011; border-color:#4fc3f7; }
+    #btn-pause.visible { display:flex; }
+
+    /* ── SCREENSHOT BUTTON (shown during celebration) ── */
+    #btn-screenshot {
+      position:fixed; bottom:52px; right:24px; z-index:20; display:none;
+      padding:10px 20px; font-family:'Orbitron',monospace; font-size:11px; font-weight:700;
+      letter-spacing:.15em; border:2px solid #ffd700; background:rgba(0,0,17,.9);
+      color:#ffd700; cursor:pointer; text-transform:uppercase; backdrop-filter:blur(4px);
+      animation:pulseGold 1s ease-in-out infinite;
+    }
+    @keyframes pulseGold { 0%,100%{ box-shadow:0 0 10px #ffd70066; } 50%{ box-shadow:0 0 28px #ffd700cc; } }
+    #btn-screenshot.visible { display:block; }
+
+    /* ── TOOLTIP ── */
+    #tooltip {
+      position:fixed; padding:5px 12px; background:rgba(0,0,17,.85);
+      border:1px solid #4fc3f780; color:#4fc3f7; font-size:11px;
+      letter-spacing:.1em; pointer-events:none; z-index:20; display:none; white-space:nowrap;
+    }
+
+    /* ── LORE PANEL (#1) ── */
+    #lore-panel {
+      position:fixed; bottom:-360px; left:50%; transform:translateX(-50%);
+      width:min(640px,92vw); background:rgba(0,0,17,.96);
+      border:1px solid #4fc3f740; border-bottom:none;
+      padding:26px 36px 24px; z-index:25;
+      transition:bottom .55s cubic-bezier(.34,1.56,.64,1);
+      text-align:center; backdrop-filter:blur(10px);
+    }
+    #lore-panel.visible { bottom:0; }
+    .lore-const-name { font-size:20px; font-weight:900; letter-spacing:.22em; color:#ffd700; margin-bottom:10px; }
+    .lore-text  { font-size:12px; line-height:1.9; color:#ccc; letter-spacing:.04em; margin-bottom:8px; }
+    .lore-myth  { font-size:11px; line-height:1.75; color:#777; letter-spacing:.03em; font-style:italic; }
+    .lore-close { margin-top:16px; }
+
+    /* ── ACHIEVEMENT TOAST (#6) ── */
+    #achievement-toast {
+      position:fixed; top:72px; right:-380px; width:320px;
+      background:rgba(0,0,17,.96); border:1px solid #ffd700; border-left:4px solid #ffd700;
+      padding:14px 18px; z-index:50; transition:right .4s cubic-bezier(.34,1.56,.64,1);
+      backdrop-filter:blur(8px); display:flex; align-items:center; gap:14px;
+    }
+    #achievement-toast.visible { right:16px; }
+    .ach-icon  { font-size:32px; line-height:1; }
+    .ach-info  { flex:1; }
+    .ach-label { font-size:9px; letter-spacing:.3em; color:#ffd700; margin-bottom:4px; }
+    .ach-name  { font-size:14px; font-weight:700; color:#fff; }
+    .ach-desc  { font-size:10px; color:#888; letter-spacing:.05em; margin-top:3px; }
+
+    /* ── PROGRESS DOTS ── */
+    #progress-bar-wrap {
+      position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+      display:flex; gap:8px; z-index:5;
+    }
+    #progress-bar-wrap.hidden { display:none; }
+    .prog-dot {
+      width:10px; height:10px; border-radius:50%;
+      background:#333; border:1px solid #4fc3f740; transition:all .4s;
+    }
+    .prog-dot.done   { background:#ffd700; border-color:#ffd700; box-shadow:0 0 8px #ffd700; }
+    .prog-dot.active { background:#4fc3f7; border-color:#4fc3f7; box-shadow:0 0 10px #4fc3f7; }
+
+    /* ── END SCREEN ── */
+    #end-screen { gap:18px; text-align:center; }
+    .end-title  { font-size:clamp(32px,7vw,70px); font-weight:900; letter-spacing:.2em; }
+    .win-title  { color:#ffd700; text-shadow:0 0 40px #ffd700aa; }
+    .lose-title { color:#ff4444; text-shadow:0 0 40px #ff4444aa; }
+    .end-subtitle { font-size:13px; color:#aaa; letter-spacing:.15em; }
+    .final-score  { font-size:clamp(28px,5vw,54px); font-weight:900; color:#ffd700; }
+    .end-buttons  { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+
+    /* ── LEADERBOARD (#7) ── */
+    #lb-screen { gap:18px; text-align:center; }
+    .lb-title { font-size:clamp(22px,4vw,46px); font-weight:900; letter-spacing:.2em; color:#ffd700; }
+    .lb-entry-row { display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; }
+    #lb-input {
+      font-family:'Orbitron',monospace; font-size:26px; font-weight:900; letter-spacing:.5em;
+      width:120px; text-align:center; background:transparent; border:2px solid #ffd700;
+      color:#ffd700; padding:8px 12px; text-transform:uppercase; outline:none;
+    }
+    .lb-score-prev { font-size:16px; color:#ffd700; letter-spacing:.1em; }
+    .lb-table { width:min(520px,88vw); border-collapse:collapse; }
+    .lb-table th { font-size:9px; letter-spacing:.3em; color:#4fc3f7; padding:6px 14px; border-bottom:1px solid #4fc3f730; text-align:left; }
+    .lb-table td { font-size:13px; padding:8px 14px; border-bottom:1px solid #ffffff0d; }
+    .lb-table tr.highlight td { color:#ffd700; }
+    .lb-rank { color:#555; font-size:11px; }
+    .lb-initials-cell { letter-spacing:.3em; font-weight:700; }
+    .lb-score-cell { text-align:right; }
+    .lb-buttons { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+
+    /* ── PAUSE SCREEN ── */
+    #pause-screen {
+      position:fixed; inset:0; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:20px;
+      background:rgba(0,0,17,.88); z-index:18; opacity:0; pointer-events:none;
+      transition:opacity .3s; backdrop-filter:blur(6px);
+    }
+    #pause-screen.visible { opacity:1; pointer-events:all; }
+    .pause-title { font-size:clamp(28px,5vw,50px); font-weight:900; letter-spacing:.3em; color:#4fc3f7; filter:drop-shadow(0 0 20px #4fc3f7aa); }
+    .pause-info  { font-size:11px; letter-spacing:.18em; color:#555; }
+    .pause-buttons { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+
+    /* ── FREE MODE (#3) ── */
+    #free-screen {
+      position:fixed; inset:0; opacity:0; pointer-events:none;
+      transition:opacity .4s; z-index:8;
+    }
+    #free-screen.visible { opacity:1; pointer-events:all; }
+    #free-hint {
+      position:fixed; top:18px; left:50%; transform:translateX(-50%);
+      font-size:11px; letter-spacing:.18em; color:#4fc3f7aa; text-align:center;
+      pointer-events:none; z-index:30; white-space:nowrap;
+    }
+    #free-counter {
+      position:fixed; top:44px; left:50%; transform:translateX(-50%);
+      font-size:10px; letter-spacing:.12em; color:#555; pointer-events:none; z-index:30;
+    }
+    #free-toolbar {
+      position:fixed; bottom:0; left:0; right:0; padding:16px 24px;
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center;
+      background:linear-gradient(to top,rgba(0,0,17,.96) 0%,transparent 100%); z-index:30;
+    }
+    #free-name {
+      font-family:'Orbitron',monospace; font-size:12px; letter-spacing:.14em;
+      background:rgba(0,0,17,.8); border:1px solid #4fc3f760; color:#fff;
+      padding:10px 16px; outline:none; text-transform:uppercase; width:230px;
+    }
+    #free-name:focus { border-color:#4fc3f7; }
+
+    /* ── TRANSITION ── */
+    #transition-overlay {
+      position:fixed; inset:0; background:#000011; z-index:15;
+      opacity:0; pointer-events:none; transition:opacity .4s;
+    }
+
+    /* ── SHAKE ── */
+    @keyframes shake {
+      0%,100%{ transform:translate(0,0); }
+      20%    { transform:translate(-6px,2px); }
+      40%    { transform:translate(6px,-2px); }
+      60%    { transform:translate(-4px,4px); }
+      80%    { transform:translate(4px,-4px); }
+    }
+    canvas.shake { animation:shake .35s ease; }
+  </style>
+</head>
+<body>
+
+<!-- Canvases stacked: bg(1) < nebula(2) < game(3) -->
+<canvas id="bgCanvas"     style="z-index:1"></canvas>
+<canvas id="nebulaCanvas" style="z-index:2;opacity:0;transition:opacity 1.2s"></canvas>
+<canvas id="gameCanvas"   style="z-index:3"></canvas>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div class="hud-left">
+    <div class="constellation-name" id="hud-name">—</div>
+    <div class="level-label" id="hud-level">NIVEL 1</div>
+    <div class="difficulty-stars" id="hud-diff">★★☆☆☆</div>
+  </div>
+  <div class="hud-center">
+    <div class="timer-value" id="hud-timer">00:00</div>
+    <div class="connections-left" id="hud-conn">0 conexiones restantes</div>
+  </div>
+  <div class="hud-right">
+    <div class="score-value" id="hud-score">0</div>
+    <div class="score-label">PUNTOS</div>
+  </div>
+</div>
+
+<!-- Progress Dots -->
+<div id="progress-bar-wrap" class="hidden"></div>
+
+<!-- Tooltip -->
+<div id="tooltip"></div>
+
+<!-- Screenshot button (visible only during celebration) -->
+<button id="btn-screenshot">📸 GUARDAR IMAGEN</button>
+
+<!-- Pause button -->
+<button id="btn-pause" title="Pausa (ESC)">⏸</button>
+
+<!-- Achievement Toast -->
+<div id="achievement-toast">
+  <div class="ach-icon" id="ach-icon">🌟</div>
+  <div class="ach-info">
+    <div class="ach-label">LOGRO DESBLOQUEADO</div>
+    <div class="ach-name" id="ach-name">—</div>
+    <div class="ach-desc" id="ach-desc">—</div>
+  </div>
+</div>
+
+<!-- Lore Panel -->
+<div id="lore-panel">
+  <div class="lore-const-name" id="lore-name">—</div>
+  <div class="lore-text" id="lore-text">—</div>
+  <div class="lore-myth" id="lore-myth">—</div>
+  <div class="lore-close">
+    <button class="btn btn-sm btn-gold" id="btn-lore-next">CONTINUAR →</button>
+  </div>
+</div>
+
+<!-- ═══ INTRO ═══ -->
+<div id="intro-screen" class="screen">
+  <div class="game-title">VOYAGER</div>
+  <div class="game-subtitle">CONECTA LAS CONSTELACIONES</div>
+  <div class="instructions">
+    <span>①</span> Haz clic en una estrella para seleccionarla<br>
+    <span>②</span> Haz clic en otra para conectarlas<br>
+    <span>③</span> Completa todas las conexiones<br>
+    <span>④</span> ¡Más rápido = más puntos!<br>
+    <span>⚠</span> Cada error resta <span>50 puntos</span>
+  </div>
+  <div class="intro-buttons">
+    <button class="btn" id="btn-start">INICIAR VIAJE</button>
+    <button class="btn btn-purple" id="btn-free">✨ MODO LIBRE</button>
+    <button class="btn btn-gold" id="btn-lb-open">🏆 RÉCORDS</button>
+  </div>
+</div>
+
+<!-- ═══ END ═══ -->
+<div id="end-screen" class="screen hidden">
+  <div class="end-title" id="end-title">¡VICTORIA!</div>
+  <div class="end-subtitle" id="end-subtitle">Completaste todas las constelaciones</div>
+  <div class="final-score" id="end-score">0</div>
+  <div class="end-subtitle">PUNTOS TOTALES</div>
+  <div class="end-buttons">
+    <button class="btn btn-gold" id="btn-save-score">🏆 GUARDAR PUNTAJE</button>
+    <button class="btn" id="btn-restart">JUGAR DE NUEVO</button>
+  </div>
+</div>
+
+<!-- ═══ LEADERBOARD ═══ -->
+<div id="lb-screen" class="screen hidden">
+  <div class="lb-title">🏆 RÉCORDS</div>
+  <div class="lb-entry-row" id="lb-entry-row" style="display:none">
+    <input id="lb-input" maxlength="3" placeholder="AAA" autocomplete="off" />
+    <div class="lb-score-prev" id="lb-score-prev">0 pts</div>
+    <button class="btn btn-sm btn-gold" id="btn-lb-confirm">✓ GUARDAR</button>
+  </div>
+  <table class="lb-table">
+    <thead>
+      <tr>
+        <th>#</th><th>INICIALES</th><th>FECHA</th>
+        <th style="text-align:right">PUNTOS</th>
+      </tr>
+    </thead>
+    <tbody id="lb-body"></tbody>
+  </table>
+  <div class="lb-buttons">
+    <button class="btn btn-sm" id="btn-lb-back">← VOLVER</button>
+    <button class="btn btn-sm btn-danger" id="btn-lb-clear">🗑 BORRAR</button>
+  </div>
+</div>
+
+<!-- ═══ PAUSE ═══ -->
+<div id="pause-screen">
+  <div class="pause-title">⏸ PAUSA</div>
+  <div class="pause-info" id="pause-info">—</div>
+  <div class="pause-buttons">
+    <button class="btn" id="btn-resume">▶ REANUDAR</button>
+    <button class="btn btn-danger" id="btn-quit">✕ MENÚ PRINCIPAL</button>
+  </div>
+</div>
+
+<!-- ═══ FREE MODE (#3) ═══ -->
+<div id="free-screen">
+  <div id="free-hint">✦ CLIC en el espacio para crear estrellas · CLIC en dos estrellas para conectar · DOBLE CLIC para eliminar</div>
+  <div id="free-counter">0 estrellas · 0 conexiones</div>
+  <div id="free-toolbar">
+    <input id="free-name" placeholder="NOMBRE DE TU CONSTELACIÓN" maxlength="32" />
+    <button class="btn btn-sm btn-gold" id="btn-free-dl">📸 DESCARGAR PNG</button>
+    <button class="btn btn-sm" id="btn-free-clear">🗑 LIMPIAR</button>
+    <button class="btn btn-sm btn-danger" id="btn-free-exit">← SALIR</button>
+  </div>
+</div>
+
+<!-- Transition overlay -->
+<div id="transition-overlay"></div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════
+//  CONSTELLATION DATA (with lore, mythology, nebula colors)
+// ═══════════════════════════════════════════════
+const CONSTELLATIONS = [
+  {
+    name:"Orión", difficulty:2,
+    lore:"Orión es una de las constelaciones más reconocibles del cielo nocturno, visible en ambos hemisferios entre noviembre y marzo. Su famoso 'Cinturón' —Mintaka, Alnilam y Alnitak— ha guiado a marineros y viajeros durante milenios.",
+    mythology:"Hijo de Poseidón y el mejor cazador del mundo, Orión fue puesto en el cielo por Zeus tras ser picado por un escorpión. Por eso Orión y Escorpio nunca aparecen juntos: cuando uno sale por el este, el otro se oculta por el oeste.",
+    nebula:['#2d0a5e','#4a1270','#1e0545','#6b1aad'],
+    stars:[
+      {x:45,y:20,name:"Betelgeuse",mag:3},{x:55,y:20,name:"Bellatrix",mag:2},
+      {x:42,y:35,name:"Mintaka",mag:2},{x:50,y:37,name:"Alnilam",mag:2},
+      {x:58,y:39,name:"Alnitak",mag:2},{x:48,y:55,name:"Saiph",mag:2},
+      {x:60,y:52,name:"Rigel",mag:3}
+    ],
+    connections:[[0,2],[0,3],[1,4],[2,3],[3,4],[4,6],[5,6],[0,5],[0,1]]
+  },
+  {
+    name:"Cassiopeia", difficulty:1,
+    lore:"Cassiopeia forma una inconfundible 'W' en el cielo del norte. Es circumpolar —visible todo el año desde el hemisferio norte— y se encuentra dentro de la Vía Láctea, rica en cúmulos estelares.",
+    mythology:"Reina vanidosa de Etiopía que alardeaba de ser más bella que las nereidas. Como castigo, Poseidón la encadenó a una silla giratoria en el cielo, condenada a dar vueltas alrededor del polo norte para siempre.",
+    nebula:['#0a1a3e','#1a3870','#0d2255','#2a4fa0'],
+    stars:[
+      {x:20,y:30,name:"Caph",mag:2},{x:35,y:20,name:"Schedar",mag:3},
+      {x:50,y:30,name:"Gamma Cas",mag:2},{x:65,y:20,name:"Ruchbah",mag:2},
+      {x:80,y:30,name:"Segin",mag:2}
+    ],
+    connections:[[0,1],[1,2],[2,3],[3,4]]
+  },
+  {
+    name:"Osa Mayor", difficulty:3,
+    lore:"La Osa Mayor contiene el célebre 'Carro' o 'Big Dipper'. Sus dos estrellas del extremo del cucharón —Dubhe y Merak— apuntan directamente a la Estrella Polar, siendo el compás natural del cielo.",
+    mythology:"Zeus se enamoró de la ninfa Calisto y la transformó en osa para protegerla de Hera. Su hijo Arcas, convertido también en oso, fue puesto junto a ella en el cielo para que pudieran estar juntos eternamente.",
+    nebula:['#0a2e1a','#1a5e35','#0d3d22','#2a8a50'],
+    stars:[
+      {x:15,y:40,name:"Dubhe",mag:3},{x:30,y:45,name:"Merak",mag:2},
+      {x:42,y:42,name:"Phecda",mag:2},{x:48,y:35,name:"Megrez",mag:2},
+      {x:58,y:28,name:"Alioth",mag:3},{x:68,y:25,name:"Mizar",mag:2},
+      {x:82,y:20,name:"Alkaid",mag:2}
+    ],
+    connections:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[3,0]]
+  },
+  {
+    name:"Leo", difficulty:2,
+    lore:"Leo es una de las constelaciones más antiguas del zodíaco. Su estrella principal Régulo está casi exactamente en la eclíptica y fue considerada por muchas culturas como 'corazón del cielo'. En marzo y abril alcanza su máximo esplendor.",
+    mythology:"El León de Nemea poseía una piel invulnerable a cualquier arma. Hércules tuvo que estrangularlo con sus propias manos como primer trabajo. Luego usó las garras del propio león para arrancarle la piel impenetrable.",
+    nebula:['#3e1a0a','#8a3515','#5e2510','#c04a1a'],
+    stars:[
+      {x:25,y:35,name:"Regulus",mag:3},{x:35,y:25,name:"Eta Leo",mag:2},
+      {x:45,y:20,name:"Algieba",mag:2},{x:55,y:25,name:"Zosma",mag:2},
+      {x:65,y:35,name:"Denebola",mag:2},{x:40,y:45,name:"Chertan",mag:2}
+    ],
+    connections:[[0,1],[1,2],[2,3],[3,4],[3,5],[5,0]]
+  },
+  {
+    name:"Escorpio", difficulty:4,
+    lore:"Escorpio es una de las pocas constelaciones que realmente se parece a su nombre. Antares, su estrella más brillante, es una supergigante roja 700 veces más grande que el Sol. Su nombre 'Anti-Ares' significa 'rival de Marte'.",
+    mythology:"El escorpión enviado por Artemisa o Gaia para matar a Orión. Zeus los puso en lados opuestos del cielo: cuando Escorpio sale al este, Orión se pone al oeste. Nunca se encuentran, como en la historia original.",
+    nebula:['#3e0a0a','#8a1515','#5e1010','#c01a1a'],
+    stars:[
+      {x:50,y:15,name:"Graffias",mag:2},{x:42,y:22,name:"Dschubba",mag:2},
+      {x:35,y:30,name:"Antares",mag:3},{x:30,y:40,name:"Tau Sco",mag:2},
+      {x:32,y:52,name:"Epsilon Sco",mag:2},{x:38,y:62,name:"Zeta Sco",mag:2},
+      {x:48,y:68,name:"Eta Sco",mag:2},{x:58,y:65,name:"Theta Sco",mag:2},
+      {x:65,y:58,name:"Iota Sco",mag:2},{x:68,y:48,name:"Shaula",mag:3}
+    ],
+    connections:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9]]
+  },
+  {
+    name:"Cruz del Sur", difficulty:1,
+    lore:"Crux es la constelación más pequeña del cielo pero una de las más emblemáticas. Es el símbolo de Australia, Nueva Zelanda, Brasil, Papua Nueva Guinea y Samoa. Los marineros la usaron durante siglos para navegar por el hemisferio sur.",
+    mythology:"Los griegos la veían como parte del Centauro. Las culturas indígenas australianas la asociaban con el 'emú en el cielo' —no como estrellas sino como las zonas oscuras de la Vía Láctea, que forman la silueta de un emú.",
+    nebula:['#0a2e2e','#1a5e5e','#0d3d3d','#2a8a8a'],
+    stars:[
+      {x:50,y:20,name:"Acrux",mag:3},{x:50,y:70,name:"Gacrux",mag:3},
+      {x:25,y:45,name:"Mimosa",mag:2},{x:75,y:45,name:"Delta Cru",mag:2}
+    ],
+    connections:[[0,1],[2,3]]
+  },
+  {
+    name:"Lyra", difficulty:2,
+    lore:"Lyra contiene a Vega, la quinta estrella más brillante del cielo. Vega fue la estrella polar hace 14,000 años y lo volverá a ser en 12,000 años. La Nebulosa del Anillo (M57) se encuentra dentro de esta pequeña constelación.",
+    mythology:"La lira fue construida por Hermes con un caparazón de tortuga. Se la regaló a Apolo, quien luego se la dio a Orfeo. Con su música Orfeo encantaba animales, árboles y rocas. Al morir, Zeus puso su lira en el cielo para honrarlo.",
+    nebula:['#1a0a3e','#3520a0','#200d5e','#5035d0'],
+    stars:[
+      {x:50,y:20,name:"Vega",mag:3},{x:40,y:45,name:"Epsilon1 Lyr",mag:2},
+      {x:55,y:50,name:"Epsilon2 Lyr",mag:2},{x:35,y:65,name:"Zeta Lyr",mag:2},
+      {x:65,y:65,name:"Delta Lyr",mag:2}
+    ],
+    connections:[[0,1],[0,2],[1,3],[2,4],[3,4]]
+  },
+  {
+    name:"Cisne", difficulty:3,
+    lore:"Cygnus alberga la 'Cruz del Norte' y a Deneb, una de las estrellas más luminosas de la galaxia. Si Deneb estuviera tan cerca como Sirio, iluminaría tanto como una luna llena. La Nebulosa de América del Norte (NGC 7000) se encuentra aquí.",
+    mythology:"Zeus se transformó en cisne para seducir a Leda, reina de Esparta. También representa a Cigno, amigo de Faetón, que lloró tanto su muerte que fue transformado en cisne y puesto en el cielo, siempre sobre el río Erídano.",
+    nebula:['#0a1e3e','#152e70','#0d2255','#1a4090'],
+    stars:[
+      {x:50,y:15,name:"Deneb",mag:3},{x:50,y:35,name:"Sadr",mag:2},
+      {x:50,y:65,name:"Albireo",mag:2},{x:25,y:35,name:"Delta Cyg",mag:2},
+      {x:75,y:35,name:"Epsilon Cyg",mag:2}
+    ],
+    connections:[[0,1],[1,2],[3,1],[1,4]]
+  }
+];
+
+// ═══════════════════════════════════════════════
+//  AUDIO ENGINE (#2) — Web Audio API, 0 assets
+// ═══════════════════════════════════════════════
+let audioCtx = null, ambientNodes = [];
+
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function tone(freq, dur=0.3, type='sine', vol=0.3, delay=0) {
+  try {
+    const ac = getAudio();
+    const osc = ac.createOscillator(), g = ac.createGain();
+    osc.connect(g); g.connect(ac.destination);
+    osc.type = type; osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, ac.currentTime + delay);
+    g.gain.linearRampToValueAtTime(vol, ac.currentTime + delay + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + delay + dur);
+    osc.start(ac.currentTime + delay);
+    osc.stop(ac.currentTime + delay + dur + 0.05);
+  } catch(e){}
+}
+
+function sndConnect()     { tone(440,.25,'sine',.22); tone(660,.3,'sine',.14,.08); }
+function sndError()       { tone(200,.3,'sawtooth',.15); tone(170,.28,'square',.08,.06); }
+function sndComplete()    { tone(523,.3,'sine',.3); tone(659,.3,'sine',.3,.15); tone(784,.55,'sine',.35,.3); tone(1046,.5,'sine',.22,.48); }
+function sndAchievement() { tone(880,.15,'sine',.2); tone(1109,.15,'sine',.2,.1); tone(1319,.3,'sine',.28,.22); }
+function sndClick()       { tone(600,.1,'sine',.1); }
+
+function startAmbient() {
+  stopAmbient();
+  try {
+    const ac = getAudio();
+    [55, 55.4].forEach((f,i) => {
+      const osc = ac.createOscillator(), g = ac.createGain(), flt = ac.createBiquadFilter();
+      osc.type='sine'; osc.frequency.value=f;
+      flt.type='lowpass'; flt.frequency.value=280;
+      g.gain.setValueAtTime(0, ac.currentTime);
+      g.gain.linearRampToValueAtTime(0.07, ac.currentTime+2);
+      osc.connect(flt); flt.connect(g); g.connect(ac.destination);
+      osc.start();
+      ambientNodes.push(osc);
+    });
+  } catch(e){}
+}
+
+function stopAmbient() {
+  ambientNodes.forEach(n => { try{ n.stop(); }catch(e){} });
+  ambientNodes = [];
+}
+
+// ═══════════════════════════════════════════════
+//  CANVAS SETUP
+// ═══════════════════════════════════════════════
+const bgC  = document.getElementById('bgCanvas');
+const nbC  = document.getElementById('nebulaCanvas');
+const gmC  = document.getElementById('gameCanvas');
+const bgX  = bgC.getContext('2d');
+const nbX  = nbC.getContext('2d');
+const ctx  = gmC.getContext('2d');
+
+function resize() {
+  const W=innerWidth, H=innerHeight;
+  bgC.width=nbC.width=gmC.width=W;
+  bgC.height=nbC.height=gmC.height=H;
+  if (bgStars.length) drawBg();
+  if (state.phase==='playing') { buildNebula(); drawGame(); }
+}
+window.addEventListener('resize', resize);
+
+// ═══════════════════════════════════════════════
+//  NEBULA SYSTEM (#5)
+// ═══════════════════════════════════════════════
+let nebulaBlobs=[], nebulaT=0;
+
+function seededRand(s) { const x=Math.sin(s+1)*10000; return x-Math.floor(x); }
+
+function buildNebula() {
+  const c=CONSTELLATIONS[state.constellationIndex], W=nbC.width, H=nbC.height;
+  nebulaBlobs=[];
+  for(let i=0;i<8;i++) {
+    const sx=state.constellationIndex*13+i;
+    nebulaBlobs.push({
+      x: W*(0.1+seededRand(sx)*0.8),
+      y: H*(0.1+seededRand(sx+100)*0.8),
+      r: Math.min(W,H)*(0.2+seededRand(sx+200)*0.35),
+      col: c.nebula[i%c.nebula.length],
+      a: 0.06+seededRand(sx+300)*0.1
+    });
+  }
+  paintNebula(1);
+  nbC.style.opacity='1';
+}
+
+function paintNebula(alpha) {
+  nbX.clearRect(0,0,nbC.width,nbC.height);
+  for(const b of nebulaBlobs) {
+    const g=nbX.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    const hex=b.col;
+    g.addColorStop(0, hex+Math.round(b.a*alpha*255).toString(16).padStart(2,'0'));
+    g.addColorStop(.55,hex+Math.round(b.a*alpha*80).toString(16).padStart(2,'0'));
+    g.addColorStop(1,'transparent');
+    nbX.beginPath(); nbX.arc(b.x,b.y,b.r,0,Math.PI*2);
+    nbX.fillStyle=g; nbX.fill();
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  BACKGROUND STARS
+// ═══════════════════════════════════════════════
+const bgStars=[];
+function initBgStars() {
+  bgStars.length=0;
+  const n=Math.max(220, innerWidth*innerHeight/4000|0);
+  for(let i=0;i<n;i++) bgStars.push({
+    x:Math.random(), y:Math.random(),
+    r:Math.random()*1.2+.2, a:Math.random()*.7+.15,
+    sp:Math.random()*.02+.005, ph:Math.random()*Math.PI*2
+  });
+}
+let bgT=0;
+function drawBg() {
+  const W=bgC.width, H=bgC.height;
+  bgX.fillStyle='#000011'; bgX.fillRect(0,0,W,H);
+  bgT+=.016;
+  for(const s of bgStars) {
+    const a=s.a+Math.sin(bgT*s.sp*60+s.ph)*.15;
+    bgX.beginPath(); bgX.arc(s.x*W,s.y*H,s.r,0,Math.PI*2);
+    bgX.fillStyle=`rgba(255,255,255,${Math.max(0,a)})`; bgX.fill();
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+const state = {
+  phase:'intro', constellationIndex:0, score:0, level:1,
+  errors:0, timerStart:0, elapsed:0, pausedElapsed:0,
+  timerInterval:null, selectedStar:null, drawnConns:new Set(),
+  hoverStar:null, celebration:false,
+  totalConns:0, perfectThisRound:false, lastTime:0,
+  errorsThisRound:0, freeCreated:false, pendingScore:0
+};
+
+// ═══════════════════════════════════════════════
+//  ACHIEVEMENTS (#6)
+// ═══════════════════════════════════════════════
+const ACH=[
+  {id:'first',    icon:'🌟', name:'Primera Estrella',    desc:'Conectaste tu primera estrella'},
+  {id:'perfect',  icon:'💎', name:'Perfección Cósmica',  desc:'Constelación completada sin errores'},
+  {id:'speed',    icon:'⚡', name:'Velocidad Warp',       desc:'Completada en menos de 20 segundos'},
+  {id:'half',     icon:'🧭', name:'Navegante Estelar',   desc:'4 constelaciones completadas'},
+  {id:'master',   icon:'🚀', name:'Voyager Master',      desc:'¡Todas las constelaciones!'},
+  {id:'explorer', icon:'🔭', name:'Explorador del Cosmos',desc:'50 conexiones estelares realizadas'},
+  {id:'creator',  icon:'✨', name:'Creador de Mundos',   desc:'Creaste tu propia constelación'},
+];
+const unlocked=new Set(), achQueue=[];
+let achTimer=null;
+
+function checkAch() {
+  const checks={
+    first:   state.totalConns>=1,
+    perfect: state.perfectThisRound,
+    speed:   state.lastTime>0&&state.lastTime<20,
+    half:    state.constellationIndex>=4,
+    master:  state.constellationIndex>=CONSTELLATIONS.length,
+    explorer:state.totalConns>=50,
+    creator: state.freeCreated
+  };
+  for(const[id,met] of Object.entries(checks)) {
+    if(met&&!unlocked.has(id)) { unlocked.add(id); achQueue.push(ACH.find(a=>a.id===id)); }
+  }
+  pumpAch();
+}
+
+function pumpAch() {
+  if(achTimer||!achQueue.length) return;
+  const a=achQueue.shift();
+  document.getElementById('ach-icon').textContent=a.icon;
+  document.getElementById('ach-name').textContent=a.name;
+  document.getElementById('ach-desc').textContent=a.desc;
+  document.getElementById('achievement-toast').classList.add('visible');
+  sndAchievement();
+  achTimer=setTimeout(()=>{
+    document.getElementById('achievement-toast').classList.remove('visible');
+    achTimer=setTimeout(()=>{ achTimer=null; pumpAch(); },420);
+  },3300);
+}
+
+// ═══════════════════════════════════════════════
+//  LEADERBOARD (#7) — localStorage
+// ═══════════════════════════════════════════════
+const LB_KEY='voyager_lb3';
+function getLB()  { try{ return JSON.parse(localStorage.getItem(LB_KEY)||'[]'); }catch(e){ return[]; } }
+function saveLB(b){ try{ localStorage.setItem(LB_KEY,JSON.stringify(b)); }catch(e){} }
+function addLB(ini,sc) {
+  const b=getLB();
+  b.push({ini:ini.toUpperCase().padEnd(3,'·').slice(0,3), sc, d:new Date().toLocaleDateString()});
+  b.sort((a,b2)=>b2.sc-a.sc);
+  saveLB(b.slice(0,10));
+  return b.findIndex(e=>e.sc===sc&&e.ini===ini.toUpperCase().padEnd(3,'·').slice(0,3));
+}
+
+function renderLB(hi=-1) {
+  const b=getLB(), tb=document.getElementById('lb-body');
+  tb.innerHTML='';
+  if(!b.length) {
+    tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:#333;padding:28px;letter-spacing:.2em">— SIN RÉCORDS AÚN —</td></tr>';
+    return;
+  }
+  b.forEach((e,i)=>{
+    const tr=document.createElement('tr');
+    if(i===hi) tr.className='highlight';
+    tr.innerHTML=`<td class="lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</td>
+      <td class="lb-initials-cell">${e.ini}</td>
+      <td style="color:#444;font-size:10px">${e.d}</td>
+      <td class="lb-score-cell">${e.sc.toLocaleString()}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function openLB(withEntry=false,score=0) {
+  state.phase='lb';
+  const row=document.getElementById('lb-entry-row');
+  if(withEntry) {
+    row.style.display='flex';
+    document.getElementById('lb-score-prev').textContent=score.toLocaleString()+' pts';
+    document.getElementById('lb-input').value='';
+    setTimeout(()=>document.getElementById('lb-input').focus(),120);
+  } else { row.style.display='none'; }
+  renderLB();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  showEl('lb-screen');
+}
+
+// ═══════════════════════════════════════════════
+//  PARTICLES
+// ═══════════════════════════════════════════════
+let parts=[];
+function spawnParts(x,y,n=50,col='#4fc3f7') {
+  for(let i=0;i<n;i++) {
+    const a=Math.random()*Math.PI*2, sp=Math.random()*4+1;
+    parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+      life:1,dec:Math.random()*.022+.012,r:Math.random()*3+1,col});
+  }
+}
+function tickParts() {
+  parts=parts.filter(p=>p.life>0);
+  for(const p of parts) {
+    p.x+=p.vx; p.y+=p.vy;
+    p.vx*=.97; p.vy*=.97; p.vy+=.04; p.life-=p.dec;
+  }
+}
+function drawParts() {
+  for(const p of parts) {
+    ctx.save(); ctx.globalAlpha=p.life;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=p.col; ctx.shadowColor=p.col; ctx.shadowBlur=8;
+    ctx.fill(); ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  LINE ANIMATIONS
+// ═══════════════════════════════════════════════
+let lineAnims=[];
+function addLine(a,b) { lineAnims.push({a,b,p:0}); }
+function tickLines() { for(const l of lineAnims) if(l.p<1) l.p=Math.min(1,l.p+.06); }
+
+// ═══════════════════════════════════════════════
+//  STAR GEOMETRY
+// ═══════════════════════════════════════════════
+function gameArea() {
+  return {x:60,y:80,w:gmC.width-120,h:gmC.height-140};
+}
+function sPos(star) {
+  const a=gameArea();
+  return {x:a.x+star.x/100*a.w, y:a.y+star.y/100*a.h};
+}
+function sRad(mag) { return 4+(mag-1)*2.5; }
+function hitStar(sx,sy,px,py,mag) { return Math.hypot(sx-px,sy-py)<Math.max(sRad(mag),14); }
+function getStarAt(px,py) {
+  const c=CONSTELLATIONS[state.constellationIndex];
+  for(let i=c.stars.length-1;i>=0;i--) {
+    const p=sPos(c.stars[i]);
+    if(hitStar(p.x,p.y,px,py,c.stars[i].mag)) return i;
+  }
+  return -1;
+}
+
+// ═══════════════════════════════════════════════
+//  DRAWING
+// ═══════════════════════════════════════════════
+function drawLines(c) {
+  for(const key of state.drawnConns) {
+    const[ai,bi]=key.split('-').map(Number);
+    const la=lineAnims.find(l=>(l.a===ai&&l.b===bi)||(l.a===bi&&l.b===ai));
+    const prog=la?la.p:1;
+    const pa=sPos(c.stars[ai]), pb=sPos(c.stars[bi]);
+    ctx.save();
+    ctx.strokeStyle='rgba(200,230,255,.55)'; ctx.lineWidth=1.5;
+    ctx.shadowColor='#4fc3f7'; ctx.shadowBlur=8;
+    ctx.beginPath(); ctx.moveTo(pa.x,pa.y);
+    ctx.lineTo(pa.x+(pb.x-pa.x)*prog, pa.y+(pb.y-pa.y)*prog);
+    ctx.stroke(); ctx.restore();
+  }
+}
+function drawStars(c,t) {
+  for(let i=0;i<c.stars.length;i++) {
+    const s=c.stars[i], {x,y}=sPos(s), r=sRad(s.mag);
+    const isSel=state.selectedStar===i, isHov=state.hoverStar===i;
+    ctx.save();
+    const gc=isSel?'#ffd700':'#4fc3f7', gr=isSel?r*5:r*3.5;
+    const grd=ctx.createRadialGradient(x,y,0,x,y,gr+(isHov?6:0));
+    grd.addColorStop(0,isSel?'rgba(255,215,0,.4)':'rgba(79,195,247,.25)');
+    grd.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(x,y,gr+(isHov?6:0),0,Math.PI*2);
+    ctx.fillStyle=grd; ctx.fill();
+    if(state.celebration) {
+      const pulse=1+Math.sin(t*.01+i*.8)*.5;
+      ctx.beginPath(); ctx.arc(x,y,r*(2+pulse),0,Math.PI*2);
+      ctx.fillStyle='rgba(255,215,0,.12)'; ctx.fill();
+    }
+    ctx.shadowColor=gc; ctx.shadowBlur=isSel?25:12;
+    ctx.beginPath(); ctx.arc(x,y,r+(isSel?2:0)+(isHov?1.5:0),0,Math.PI*2);
+    ctx.fillStyle=isSel?'#ffd700':'#fff'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,r*.4,0,Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill();
+    ctx.restore();
+  }
+}
+function drawGame() {
+  const W=gmC.width, H=gmC.height, t=performance.now();
+  ctx.clearRect(0,0,W,H);
+  if(state.phase==='free') { drawFreeCanvas(); return; }
+  if(state.phase!=='playing') return;
+  const c=CONSTELLATIONS[state.constellationIndex];
+  if(state.celebration) {
+    const a=.06+.04*Math.sin(t*.005);
+    ctx.fillStyle=`rgba(255,215,0,${a})`; ctx.fillRect(0,0,W,H);
+  }
+  tickLines(); drawLines(c); tickParts(); drawParts(); drawStars(c,t);
+}
+
+// ═══════════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════════
+function loop() {
+  drawBg();
+  if(state.phase==='playing'||state.phase==='paused') {
+    nebulaT+=.004;
+    nbC.style.opacity=(.82+.18*Math.sin(nebulaT)).toFixed(3);
+  }
+  drawGame();
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════
+//  HUD
+// ═══════════════════════════════════════════════
+function updateHUD() {
+  const c=CONSTELLATIONS[state.constellationIndex];
+  document.getElementById('hud-name').textContent=c.name.toUpperCase();
+  document.getElementById('hud-level').textContent=`NIVEL ${state.level} / ${CONSTELLATIONS.length}`;
+  document.getElementById('hud-diff').textContent='★'.repeat(c.difficulty)+'☆'.repeat(5-c.difficulty);
+  const rem=c.connections.length-state.drawnConns.size;
+  document.getElementById('hud-conn').textContent=
+    rem===0?'¡Completado!':`${rem} conexión${rem!==1?'es':''} restante${rem!==1?'s':''}`;
+  document.getElementById('hud-score').textContent=state.score.toLocaleString();
+}
+function updateTimer() {
+  const e=Math.floor((Date.now()-state.timerStart)/1000);
+  state.elapsed=e;
+  document.getElementById('hud-timer').textContent=
+    String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
+}
+function startTimer() {
+  state.timerStart=Date.now();
+  if(state.timerInterval) clearInterval(state.timerInterval);
+  state.timerInterval=setInterval(updateTimer,500);
+}
+function stopTimer() {
+  if(state.timerInterval){ clearInterval(state.timerInterval); state.timerInterval=null; }
+}
+
+// ═══════════════════════════════════════════════
+//  PROGRESS DOTS
+// ═══════════════════════════════════════════════
+function buildDots() {
+  const w=document.getElementById('progress-bar-wrap'); w.innerHTML='';
+  CONSTELLATIONS.forEach((_,i)=>{
+    const d=document.createElement('div'); d.className='prog-dot'; d.id='pd'+i; w.appendChild(d);
+  });
+  refreshDots();
+}
+function refreshDots() {
+  CONSTELLATIONS.forEach((_,i)=>{
+    const d=document.getElementById('pd'+i); if(!d) return;
+    d.className='prog-dot'+(i<state.constellationIndex?' done':i===state.constellationIndex?' active':'');
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  LORE PANEL (#1)
+// ═══════════════════════════════════════════════
+function showLore() {
+  const c=CONSTELLATIONS[state.constellationIndex];
+  document.getElementById('lore-name').textContent=c.name.toUpperCase();
+  document.getElementById('lore-text').textContent=c.lore;
+  document.getElementById('lore-myth').textContent=c.mythology;
+  document.getElementById('lore-panel').classList.add('visible');
+}
+function hideLore(cb) {
+  document.getElementById('lore-panel').classList.remove('visible');
+  setTimeout(()=>{ if(cb) cb(); },580);
+}
+
+// ═══════════════════════════════════════════════
+//  SCREENSHOT (#4)
+// ═══════════════════════════════════════════════
+function captureGame() {
+  const W=gmC.width, H=gmC.height;
+  const tmp=document.createElement('canvas'); tmp.width=W; tmp.height=H;
+  const tc=tmp.getContext('2d');
+  tc.drawImage(bgC,0,0);
+  tc.globalAlpha=parseFloat(nbC.style.opacity||1);
+  tc.drawImage(nbC,0,0);
+  tc.globalAlpha=1;
+  tc.drawImage(gmC,0,0);
+  // Watermark
+  const c=CONSTELLATIONS[state.constellationIndex];
+  tc.textAlign='right';
+  tc.font="bold 18px 'Orbitron',monospace"; tc.fillStyle='rgba(79,195,247,.85)';
+  tc.fillText('VOYAGER',W-18,H-38);
+  tc.font="13px 'Orbitron',monospace"; tc.fillStyle='rgba(255,215,0,.75)';
+  tc.fillText(c.name.toUpperCase(),W-18,H-18);
+  const a=document.createElement('a');
+  a.download=`voyager-${c.name.toLowerCase().replace(/\s/g,'-')}.png`;
+  a.href=tmp.toDataURL('image/png'); a.click();
+  sndAchievement();
+}
+
+// ═══════════════════════════════════════════════
+//  GAME FLOW
+// ═══════════════════════════════════════════════
+function connKey(a,b) { return a<b?`${a}-${b}`:`${b}-${a}`; }
+function isValidConn(a,b) {
+  return CONSTELLATIONS[state.constellationIndex].connections.some(
+    ([x,y])=>(x===a&&y===b)||(x===b&&y===a));
+}
+
+function startGame() {
+  Object.assign(state,{
+    phase:'playing', constellationIndex:0, score:0, level:1,
+    errors:0, totalConns:0, pausedElapsed:0, freeCreated:state.freeCreated
+  });
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  showEl('hud'); showEl('progress-bar-wrap');
+  document.getElementById('progress-bar-wrap').classList.remove('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('btn-pause').classList.add('visible');
+  startAmbient(); buildDots(); loadConstellation();
+}
+
+function loadConstellation() {
+  Object.assign(state,{
+    selectedStar:null, drawnConns:new Set(), celebration:false,
+    errorsThisRound:0, hoverStar:null
+  });
+  lineAnims=[]; parts=[];
+  document.getElementById('btn-screenshot').classList.remove('visible');
+  buildNebula(); startTimer(); updateHUD(); refreshDots();
+}
+
+function tryConnect(a,b) {
+  if(a===b) return;
+  const k=connKey(a,b);
+  if(state.drawnConns.has(k)) { state.selectedStar=null; return; }
+  if(isValidConn(a,b)) {
+    state.drawnConns.add(k); addLine(a,b);
+    state.selectedStar=null; state.totalConns++; sndConnect();
+    const c=CONSTELLATIONS[state.constellationIndex];
+    const pa=sPos(c.stars[a]), pb=sPos(c.stars[b]);
+    spawnParts((pa.x+pb.x)/2,(pa.y+pb.y)/2,20,'#4fc3f7');
+    checkAch();
+    if(state.drawnConns.size===c.connections.length) onComplete();
+    else updateHUD();
+  } else {
+    state.score=Math.max(0,state.score-50);
+    state.errors++; state.errorsThisRound++;
+    state.selectedStar=null; shakeCanvas(); sndError(); updateHUD();
+  }
+}
+
+function shakeCanvas() {
+  gmC.classList.remove('shake'); void gmC.offsetWidth; gmC.classList.add('shake');
+  gmC.addEventListener('animationend',()=>gmC.classList.remove('shake'),{once:true});
+  const ov=document.getElementById('transition-overlay');
+  ov.style.background='rgba(255,0,0,.12)'; ov.style.transition='opacity .1s'; ov.style.opacity='1';
+  setTimeout(()=>{ ov.style.transition='opacity .4s'; ov.style.opacity='0'; },100);
+  setTimeout(()=>{ ov.style.background='#000011'; },620);
+}
+
+function onComplete() {
+  stopTimer();
+  state.celebration=true;
+  state.lastTime=state.elapsed;
+  state.perfectThisRound=state.errorsThisRound===0;
+  const c=CONSTELLATIONS[state.constellationIndex];
+  const bonus=Math.max(0,500-state.elapsed*5);
+  state.score+=Math.floor((1000+bonus)*c.difficulty);
+  c.stars.forEach(s=>{ const{x,y}=sPos(s); spawnParts(x,y,30,'#ffd700'); spawnParts(x,y,15,'#4fc3f7'); });
+  sndComplete(); updateHUD();
+  document.getElementById('btn-screenshot').classList.add('visible');
+  checkAch();
+  setTimeout(showLore, 800);
+}
+
+function advanceFromLore() {
+  document.getElementById('btn-screenshot').classList.remove('visible');
+  state.celebration=false;
+  if(state.constellationIndex<CONSTELLATIONS.length-1) {
+    fade(()=>{ state.constellationIndex++; state.level++; loadConstellation(); });
+  } else {
+    fade(()=>endGame(true));
+  }
+}
+
+function endGame(win) {
+  state.phase='end'; state.pendingScore=state.score;
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('progress-bar-wrap').classList.add('hidden');
+  document.getElementById('btn-pause').classList.remove('visible');
+  document.getElementById('btn-screenshot').classList.remove('visible');
+  stopTimer(); stopAmbient(); checkAch();
+  const t=document.getElementById('end-title'), s=document.getElementById('end-subtitle');
+  t.textContent=win?'¡VICTORIA!':'FIN DEL VIAJE';
+  t.className='end-title '+(win?'win-title':'lose-title');
+  s.textContent=win?'¡Completaste todas las constelaciones!':'El universo te espera de nuevo.';
+  document.getElementById('end-score').textContent=state.score.toLocaleString();
+  document.getElementById('btn-save-score').style.display=win?'inline-block':'none';
+  showEl('end-screen');
+  if(win) for(let i=0;i<9;i++) setTimeout(()=>spawnParts(
+    Math.random()*gmC.width, Math.random()*gmC.height, 45,
+    ['#ffd700','#4fc3f7','#fff'][Math.random()*3|0]
+  ),i*230);
+}
+
+function fade(cb) {
+  const ov=document.getElementById('transition-overlay');
+  ov.style.background='#000011'; ov.style.transition='opacity .4s'; ov.style.opacity='1';
+  setTimeout(()=>{ cb(); ov.style.opacity='0'; },460);
+}
+
+// ═══════════════════════════════════════════════
+//  PAUSE / RESUME
+// ═══════════════════════════════════════════════
+function pauseGame() {
+  if(state.phase!=='playing'||state.celebration) return;
+  state.phase='paused'; state.pausedElapsed=state.elapsed; stopTimer();
+  const c=CONSTELLATIONS[state.constellationIndex];
+  const rem=c.connections.length-state.drawnConns.size;
+  document.getElementById('pause-info').textContent=
+    `${c.name.toUpperCase()}  ·  NIVEL ${state.level}/${CONSTELLATIONS.length}  ·  ${rem} conexión${rem!==1?'es':''} restante${rem!==1?'s':''}`;
+  document.getElementById('pause-screen').classList.add('visible');
+  document.getElementById('btn-pause').innerHTML='▶';
+}
+function resumeGame() {
+  if(state.phase!=='paused') return;
+  state.phase='playing';
+  state.timerStart=Date.now()-state.pausedElapsed*1000;
+  if(state.timerInterval) clearInterval(state.timerInterval);
+  state.timerInterval=setInterval(updateTimer,500);
+  document.getElementById('pause-screen').classList.remove('visible');
+  document.getElementById('btn-pause').innerHTML='⏸';
+}
+function quitToMenu() {
+  state.phase='intro'; stopTimer(); stopAmbient();
+  state.selectedStar=null; parts=[]; lineAnims=[];
+  document.getElementById('pause-screen').classList.remove('visible');
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('progress-bar-wrap').classList.add('hidden');
+  document.getElementById('btn-pause').classList.remove('visible');
+  document.getElementById('btn-pause').innerHTML='⏸';
+  document.getElementById('btn-screenshot').classList.remove('visible');
+  hideLore();
+  nbC.style.opacity='0';
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  showEl('intro-screen');
+}
+
+// ═══════════════════════════════════════════════
+//  FREE MODE (#3)
+// ═══════════════════════════════════════════════
+let fStars=[], fConns=[], fSel=null, fHov=-1;
+const FRAD=7, FHIT=18;
+
+function enterFree() {
+  state.phase='free'; fStars=[]; fConns=[]; fSel=null; fHov=-1; parts=[];
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById('free-screen').classList.add('visible');
+  document.getElementById('free-name').value='';
+  nbC.style.opacity='0'; nbX.clearRect(0,0,nbC.width,nbC.height);
+  gmC.style.cursor='crosshair';
+  updateFreeCounter(); drawFreeCanvas();
+}
+function exitFree() {
+  state.phase='intro';
+  document.getElementById('free-screen').classList.remove('visible');
+  nbC.style.opacity='0'; gmC.style.cursor='default';
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  showEl('intro-screen');
+}
+function getFreeAt(px,py) {
+  for(let i=fStars.length-1;i>=0;i--)
+    if(Math.hypot(fStars[i].x-px,fStars[i].y-py)<FHIT) return i;
+  return -1;
+}
+function fHasConn(a,b){ return fConns.some(c=>(c.a===a&&c.b===b)||(c.a===b&&c.b===a)); }
+
+let fLastClick={i:-1,t:0};
+function handleFreeClick(px,py) {
+  const idx=getFreeAt(px,py), now=Date.now();
+  if(idx===-1) {
+    // Add star
+    fStars.push({x:px,y:py,name:`Estrella ${fStars.length+1}`});
+    fSel=null; sndClick();
+  } else {
+    if(fLastClick.i===idx&&now-fLastClick.t<380) {
+      // Double-click: remove star
+      fConns=fConns.filter(c=>c.a!==idx&&c.b!==idx)
+        .map(c=>({a:c.a>idx?c.a-1:c.a,b:c.b>idx?c.b-1:c.b}));
+      fStars.splice(idx,1); fSel=null; sndError();
+      fLastClick={i:-1,t:0}; updateFreeCounter(); drawFreeCanvas(); return;
+    }
+    if(fSel===null) { fSel=idx; sndClick(); }
+    else if(fSel===idx) { fSel=null; }
+    else {
+      if(!fHasConn(fSel,idx)) {
+        fConns.push({a:fSel,b:idx});
+        spawnParts((fStars[fSel].x+fStars[idx].x)/2,
+                   (fStars[fSel].y+fStars[idx].y)/2,15,'#bb86fc');
+        sndConnect();
+      }
+      fSel=null;
+    }
+  }
+  fLastClick={i:idx,t:now}; updateFreeCounter(); drawFreeCanvas();
+}
+
+function drawFreeCanvas() {
+  ctx.clearRect(0,0,gmC.width,gmC.height);
+  if(state.phase!=='free') return;
+  for(const c of fConns) {
+    const a=fStars[c.a],b=fStars[c.b]; if(!a||!b) continue;
+    ctx.save(); ctx.strokeStyle='rgba(187,134,252,.6)'; ctx.lineWidth=1.5;
+    ctx.shadowColor='#bb86fc'; ctx.shadowBlur=8;
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.restore();
+  }
+  tickParts(); drawParts();
+  for(let i=0;i<fStars.length;i++) {
+    const s=fStars[i], isSel=fSel===i, isHov=fHov===i;
+    const col=isSel?'#ffd700':'#bb86fc';
+    ctx.save();
+    const grd=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,FRAD*4);
+    grd.addColorStop(0,isSel?'rgba(255,215,0,.35)':'rgba(187,134,252,.28)');
+    grd.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(s.x,s.y,FRAD*4,0,Math.PI*2); ctx.fillStyle=grd; ctx.fill();
+    ctx.shadowColor=col; ctx.shadowBlur=15;
+    ctx.beginPath(); ctx.arc(s.x,s.y,FRAD+(isSel?2:0)+(isHov?1:0),0,Math.PI*2);
+    ctx.fillStyle=col; ctx.fill();
+    ctx.beginPath(); ctx.arc(s.x,s.y,FRAD*.4,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+    ctx.restore();
+  }
+}
+function updateFreeCounter() {
+  document.getElementById('free-counter').textContent=
+    `${fStars.length} estrella${fStars.length!==1?'s':''}  ·  ${fConns.length} conexión${fConns.length!==1?'es':''}`;
+}
+function downloadFree() {
+  if(fStars.length<2) { sndError(); return; }
+  const name=(document.getElementById('free-name').value.trim()||'MI CONSTELACIÓN').toUpperCase();
+  const W=gmC.width,H=gmC.height;
+  const tmp=document.createElement('canvas'); tmp.width=W; tmp.height=H;
+  const tc=tmp.getContext('2d');
+  tc.drawImage(bgC,0,0); tc.drawImage(gmC,0,0);
+  tc.font="bold 20px 'Orbitron',monospace"; tc.textAlign='center';
+  tc.fillStyle='rgba(187,134,252,.9)'; tc.fillText(name,W/2,48);
+  tc.font="13px 'Orbitron',monospace"; tc.textAlign='right';
+  tc.fillStyle='rgba(79,195,247,.8)'; tc.fillText('VOYAGER — MODO LIBRE',W-18,H-18);
+  const a=document.createElement('a');
+  a.download=`voyager-libre-${name.toLowerCase().replace(/\s+/g,'-')}.png`;
+  a.href=tmp.toDataURL('image/png'); a.click();
+  state.freeCreated=true; checkAch(); sndComplete();
+}
+
+// ═══════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════
+function showEl(id) { const e=document.getElementById(id); if(e){ e.classList.remove('hidden'); } }
+
+// ═══════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════
+gmC.addEventListener('click', e => {
+  const r=gmC.getBoundingClientRect(), px=e.clientX-r.left, py=e.clientY-r.top;
+  if(state.phase==='free') { handleFreeClick(px,py); return; }
+  if(state.phase!=='playing'||state.celebration) return;
+  const idx=getStarAt(px,py);
+  if(idx===-1) { state.selectedStar=null; return; }
+  if(state.selectedStar===null) state.selectedStar=idx;
+  else tryConnect(state.selectedStar,idx);
+  updateHUD();
+});
+
+gmC.addEventListener('mousemove', e => {
+  const r=gmC.getBoundingClientRect(), px=e.clientX-r.left, py=e.clientY-r.top;
+  const tip=document.getElementById('tooltip');
+  if(state.phase==='free') {
+    fHov=getFreeAt(px,py);
+    gmC.style.cursor=fHov!==-1?'pointer':'crosshair';
+    if(fHov!==-1 && fStars[fHov]) {
+      tip.style.display='block'; tip.style.left=(e.clientX+14)+'px';
+      tip.style.top=(e.clientY-10)+'px'; tip.textContent=fStars[fHov].name;
+    } else { tip.style.display='none'; }
+    drawFreeCanvas(); return;
+  }
+  if(state.phase!=='playing') return;
+  const idx=getStarAt(px,py); state.hoverStar=idx===-1?null:idx;
+  if(idx!==-1) {
+    const c=CONSTELLATIONS[state.constellationIndex];
+    tip.style.display='block'; tip.style.left=(e.clientX+14)+'px';
+    tip.style.top=(e.clientY-10)+'px'; tip.textContent=c.stars[idx].name;
+    gmC.style.cursor='pointer';
+  } else { tip.style.display='none'; gmC.style.cursor='default'; }
+});
+
+gmC.addEventListener('mouseleave', ()=>{
+  document.getElementById('tooltip').style.display='none';
+  state.hoverStar=null; fHov=-1; gmC.style.cursor='default';
+});
+
+gmC.addEventListener('touchend', e => {
+  e.preventDefault();
+  const t=e.changedTouches[0], r=gmC.getBoundingClientRect();
+  const px=t.clientX-r.left, py=t.clientY-r.top;
+  if(state.phase==='free') { handleFreeClick(px,py); return; }
+  if(state.phase!=='playing'||state.celebration) return;
+  const idx=getStarAt(px,py);
+  if(idx===-1) { state.selectedStar=null; return; }
+  if(state.selectedStar===null) state.selectedStar=idx;
+  else tryConnect(state.selectedStar,idx);
+  updateHUD();
+},{passive:false});
+
+// ═══════════════════════════════════════════════
+//  BUTTONS
+// ═══════════════════════════════════════════════
+document.getElementById('btn-start').addEventListener('click',()=>{ sndClick(); fade(startGame); });
+document.getElementById('btn-restart').addEventListener('click',()=>{ document.getElementById('end-screen').classList.add('hidden'); sndClick(); fade(startGame); });
+document.getElementById('btn-free').addEventListener('click',()=>{ sndClick(); enterFree(); });
+document.getElementById('btn-lb-open').addEventListener('click',()=>{ sndClick(); openLB(false); });
+
+document.getElementById('btn-pause').addEventListener('click',()=>{
+  if(state.phase==='playing') pauseGame(); else if(state.phase==='paused') resumeGame();
+});
+document.getElementById('btn-resume').addEventListener('click',resumeGame);
+document.getElementById('btn-quit').addEventListener('click',quitToMenu);
+
+document.getElementById('btn-screenshot').addEventListener('click',captureGame);
+document.getElementById('btn-lore-next').addEventListener('click',()=>hideLore(advanceFromLore));
+
+// Leaderboard buttons
+document.getElementById('btn-save-score').addEventListener('click',()=>{
+  document.getElementById('end-screen').classList.add('hidden');
+  openLB(true,state.pendingScore);
+});
+document.getElementById('btn-lb-confirm').addEventListener('click',()=>{
+  const ini=document.getElementById('lb-input').value.trim();
+  if(!ini) return;
+  const hi=addLB(ini,state.pendingScore);
+  renderLB(hi);
+  document.getElementById('lb-entry-row').style.display='none';
+  sndAchievement();
+});
+document.getElementById('lb-input').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('btn-lb-confirm').click(); });
+document.getElementById('btn-lb-back').addEventListener('click',()=>{
+  document.getElementById('lb-screen').classList.add('hidden');
+  state.phase='intro'; showEl('intro-screen');
+});
+document.getElementById('btn-lb-clear').addEventListener('click',()=>{
+  localStorage.removeItem(LB_KEY); renderLB();
+});
+
+// Free mode buttons
+document.getElementById('btn-free-exit').addEventListener('click',exitFree);
+document.getElementById('btn-free-clear').addEventListener('click',()=>{
+  fStars=[]; fConns=[]; fSel=null; parts=[]; updateFreeCounter(); drawFreeCanvas();
+});
+document.getElementById('btn-free-dl').addEventListener('click',downloadFree);
+
+// ═══════════════════════════════════════════════
+//  KEYBOARD
+// ═══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') {
+    if(state.phase==='playing'&&!state.celebration) pauseGame();
+    else if(state.phase==='paused') resumeGame();
+    else if(state.phase==='free') exitFree();
+    else if(state.selectedStar!==null) state.selectedStar=null;
+  }
+});
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+resize();
+initBgStars();
+loop();
+</script>
+</body>
+</html>

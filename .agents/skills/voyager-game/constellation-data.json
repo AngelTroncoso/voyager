@@ -1,0 +1,195 @@
+{
+  "version": "1.0.0",
+  "description": "Real astronomical constellation data for the Voyager game. Positions are normalized to a [0,100] coordinate grid preserving relative star geometry.",
+  "constellations": [
+    {
+      "id": "orion",
+      "name": "Orion",
+      "difficulty": 2,
+      "lore": "The Hunter — one of the most recognizable constellations, visible from both hemispheres. Associated with the great hunter Orion in Greek mythology.",
+      "stars": [
+        { "id": 0, "name": "Betelgeuse",   "x": 38.0, "y": 28.0, "magnitude": 0.50 },
+        { "id": 1, "name": "Bellatrix",    "x": 62.0, "y": 26.0, "magnitude": 1.64 },
+        { "id": 2, "name": "Mintaka",      "x": 38.0, "y": 50.0, "magnitude": 2.23 },
+        { "id": 3, "name": "Alnilam",      "x": 50.0, "y": 50.0, "magnitude": 1.69 },
+        { "id": 4, "name": "Alnitak",      "x": 62.0, "y": 50.0, "magnitude": 1.77 },
+        { "id": 5, "name": "Saiph",        "x": 38.0, "y": 74.0, "magnitude": 2.07 },
+        { "id": 6, "name": "Rigel",        "x": 65.0, "y": 74.0, "magnitude": 0.13 }
+      ],
+      "connections": [
+        [0, 1], [0, 2], [1, 4], [2, 3], [3, 4],
+        [2, 5], [4, 6], [5, 3], [6, 3]
+      ]
+    },
+    {
+      "id": "cassiopeia",
+      "name": "Cassiopeia",
+      "difficulty": 1,
+      "lore": "The Queen — a distinctive W-shape in the northern sky, named for the vain queen of Aethiopia in Greek mythology.",
+      "stars": [
+        { "id": 0, "name": "Caph",         "x": 10.0, "y": 60.0, "magnitude": 2.27 },
+        { "id": 1, "name": "Schedar",      "x": 28.0, "y": 35.0, "magnitude": 2.24 },
+        { "id": 2, "name": "Gamma Cas",    "x": 50.0, "y": 55.0, "magnitude": 2.47 },
+        { "id": 3, "name": "Ruchbah",      "x": 72.0, "y": 32.0, "magnitude": 2.68 },
+        { "id": 4, "name": "Segin",        "x": 90.0, "y": 50.0, "magnitude": 3.38 }
+      ],
+      "connections": [
+        [0, 1], [1, 2], [2, 3], [3, 4]
+      ]
+    },
+    {
+      "id": "ursa_major",
+      "name": "Ursa Major",
+      "difficulty": 2,
+      "lore": "The Great Bear — contains the famous Big Dipper asterism. Its two outermost stars point toward Polaris, the North Star.",
+      "stars": [
+        { "id": 0, "name": "Dubhe",        "x": 72.0, "y": 20.0, "magnitude": 1.81 },
+        { "id": 1, "name": "Merak",        "x": 72.0, "y": 36.0, "magnitude": 2.34 },
+        { "id": 2, "name": "Phecda",       "x": 55.0, "y": 40.0, "magnitude": 2.44 },
+        { "id": 3, "name": "Megrez",       "x": 55.0, "y": 24.0, "magnitude": 3.31 },
+        { "id": 4, "name": "Alioth",       "x": 38.0, "y": 20.0, "magnitude": 1.76 },
+        { "id": 5, "name": "Mizar",        "x": 22.0, "y": 28.0, "magnitude": 2.04 },
+        { "id": 6, "name": "Alkaid",       "x": 10.0, "y": 42.0, "magnitude": 1.86 }
+      ],
+      "connections": [
+        [0, 1], [1, 2], [2, 3], [3, 0], [3, 4], [4, 5], [5, 6]
+      ]
+    },
+    {
+      "id": "ursa_minor",
+      "name": "Ursa Minor",
+      "difficulty": 2,
+      "lore": "The Little Bear — contains Polaris, the North Star, at the tip of its tail. Used for navigation for centuries.",
+      "stars": [
+        { "id": 0, "name": "Polaris",      "x": 50.0, "y": 15.0, "magnitude": 1.98 },
+        { "id": 1, "name": "Kochab",       "x": 25.0, "y": 70.0, "magnitude": 2.07 },
+        { "id": 2, "name": "Pherkad",      "x": 38.0, "y": 75.0, "magnitude": 3.05 },
+        { "id": 3, "name": "Eta UMi",      "x": 42.0, "y": 60.0, "magnitude": 4.95 },
+        { "id": 4, "name": "Zeta UMi",     "x": 48.0, "y": 48.0, "magnitude": 4.32 },
+        { "id": 5, "name": "Epsilon UMi",  "x": 52.0, "y": 36.0, "magnitude": 4.23 },
+        { "id": 6, "name": "Delta UMi",    "x": 55.0, "y": 25.0, "magnitude": 4.36 }
+      ],
+      "connections": [
+        [0, 6], [6, 5], [5, 4], [4, 3], [3, 2], [2, 1], [1, 2]
+      ]
+    },
+    {
+      "id": "leo",
+      "name": "Leo",
+      "difficulty": 3,
+      "lore": "The Lion — a prominent zodiac constellation. The bright star Regulus marks its heart and lies almost exactly on the ecliptic.",
+      "stars": [
+        { "id": 0, "name": "Regulus",      "x": 50.0, "y": 72.0, "magnitude": 1.36 },
+        { "id": 1, "name": "Denebola",     "x": 88.0, "y": 55.0, "magnitude": 2.14 },
+        { "id": 2, "name": "Algieba",      "x": 48.0, "y": 50.0, "magnitude": 2.28 },
+        { "id": 3, "name": "Zosma",        "x": 70.0, "y": 42.0, "magnitude": 2.56 },
+        { "id": 4, "name": "Chertan",      "x": 78.0, "y": 55.0, "magnitude": 3.34 },
+        { "id": 5, "name": "Eta Leo",      "x": 38.0, "y": 36.0, "magnitude": 3.49 },
+        { "id": 6, "name": "Adhafera",     "x": 40.0, "y": 28.0, "magnitude": 3.44 },
+        { "id": 7, "name": "Mu Leo",       "x": 36.0, "y": 48.0, "magnitude": 3.88 }
+      ],
+      "connections": [
+        [0, 2], [2, 7], [7, 5], [5, 6], [6, 2],
+        [2, 3], [3, 4], [4, 1], [1, 3], [0, 4]
+      ]
+    },
+    {
+      "id": "scorpius",
+      "name": "Scorpius",
+      "difficulty": 4,
+      "lore": "The Scorpion — a zodiac constellation rich in star clusters. Antares, its brightest star, is a red supergiant marking the scorpion's heart.",
+      "stars": [
+        { "id": 0,  "name": "Antares",     "x": 50.0, "y": 30.0, "magnitude": 1.06 },
+        { "id": 1,  "name": "Acrab",       "x": 38.0, "y": 18.0, "magnitude": 2.62 },
+        { "id": 2,  "name": "Dschubba",    "x": 50.0, "y": 15.0, "magnitude": 2.29 },
+        { "id": 3,  "name": "Pi Sco",      "x": 62.0, "y": 18.0, "magnitude": 2.89 },
+        { "id": 4,  "name": "Sigma Sco",   "x": 44.0, "y": 36.0, "magnitude": 2.89 },
+        { "id": 5,  "name": "Tau Sco",     "x": 56.0, "y": 36.0, "magnitude": 2.82 },
+        { "id": 6,  "name": "Epsilon Sco", "x": 48.0, "y": 48.0, "magnitude": 2.29 },
+        { "id": 7,  "name": "Mu Sco",      "x": 44.0, "y": 60.0, "magnitude": 3.00 },
+        { "id": 8,  "name": "Zeta Sco",    "x": 46.0, "y": 68.0, "magnitude": 3.62 },
+        { "id": 9,  "name": "Eta Sco",     "x": 50.0, "y": 76.0, "magnitude": 3.33 },
+        { "id": 10, "name": "Theta Sco",   "x": 56.0, "y": 82.0, "magnitude": 1.86 },
+        { "id": 11, "name": "Iota Sco",    "x": 62.0, "y": 86.0, "magnitude": 3.03 },
+        { "id": 12, "name": "Kappa Sco",   "x": 70.0, "y": 82.0, "magnitude": 2.41 },
+        { "id": 13, "name": "Lambda Sco",  "x": 74.0, "y": 75.0, "magnitude": 1.63 }
+      ],
+      "connections": [
+        [1, 2], [2, 3], [2, 0], [0, 4], [0, 5],
+        [4, 6], [5, 6], [6, 7], [7, 8], [8, 9],
+        [9, 10], [10, 11], [10, 12], [12, 13]
+      ]
+    },
+    {
+      "id": "crux",
+      "name": "Crux",
+      "difficulty": 1,
+      "lore": "The Southern Cross — the smallest of all 88 constellations, yet the most iconic in the southern hemisphere. Featured on the flags of Australia, New Zealand, and Brazil.",
+      "stars": [
+        { "id": 0, "name": "Acrux",        "x": 50.0, "y": 85.0, "magnitude": 0.76 },
+        { "id": 1, "name": "Mimosa",       "x": 78.0, "y": 50.0, "magnitude": 1.25 },
+        { "id": 2, "name": "Gacrux",       "x": 50.0, "y": 15.0, "magnitude": 1.63 },
+        { "id": 3, "name": "Delta Cru",    "x": 22.0, "y": 50.0, "magnitude": 2.80 },
+        { "id": 4, "name": "Epsilon Cru",  "x": 60.0, "y": 62.0, "magnitude": 3.59 }
+      ],
+      "connections": [
+        [0, 2], [1, 3], [0, 4], [4, 1]
+      ]
+    },
+    {
+      "id": "lyra",
+      "name": "Lyra",
+      "difficulty": 2,
+      "lore": "The Lyre — a small but bright constellation. Vega, its brightest star, is one of the vertices of the Summer Triangle and was the North Star around 12,000 BCE.",
+      "stars": [
+        { "id": 0, "name": "Vega",         "x": 50.0, "y": 12.0, "magnitude": 0.03 },
+        { "id": 1, "name": "Sheliak",      "x": 32.0, "y": 48.0, "magnitude": 3.52 },
+        { "id": 2, "name": "Sulafat",      "x": 68.0, "y": 48.0, "magnitude": 3.24 },
+        { "id": 3, "name": "Delta Lyr",    "x": 28.0, "y": 70.0, "magnitude": 4.22 },
+        { "id": 4, "name": "Zeta Lyr",     "x": 38.0, "y": 32.0, "magnitude": 4.34 },
+        { "id": 5, "name": "Epsilon Lyr",  "x": 65.0, "y": 32.0, "magnitude": 4.67 }
+      ],
+      "connections": [
+        [0, 4], [0, 5], [4, 1], [5, 2], [1, 3], [1, 2], [2, 3]
+      ]
+    },
+    {
+      "id": "aquila",
+      "name": "Aquila",
+      "difficulty": 3,
+      "lore": "The Eagle — in mythology, Zeus's eagle that carried Ganymede to Olympus. Altair, its brightest star, is one of the vertices of the Summer Triangle.",
+      "stars": [
+        { "id": 0, "name": "Altair",       "x": 50.0, "y": 50.0, "magnitude": 0.76 },
+        { "id": 1, "name": "Tarazed",      "x": 36.0, "y": 42.0, "magnitude": 2.72 },
+        { "id": 2, "name": "Alshain",      "x": 60.0, "y": 42.0, "magnitude": 3.71 },
+        { "id": 3, "name": "Delta Aql",    "x": 42.0, "y": 30.0, "magnitude": 3.36 },
+        { "id": 4, "name": "Zeta Aql",     "x": 55.0, "y": 24.0, "magnitude": 2.99 },
+        { "id": 5, "name": "Eta Aql",      "x": 42.0, "y": 65.0, "magnitude": 3.90 },
+        { "id": 6, "name": "Theta Aql",    "x": 56.0, "y": 68.0, "magnitude": 3.23 },
+        { "id": 7, "name": "Lambda Aql",   "x": 50.0, "y": 80.0, "magnitude": 3.44 }
+      ],
+      "connections": [
+        [1, 0], [0, 2], [0, 3], [3, 4], [0, 5],
+        [5, 6], [5, 7], [6, 7]
+      ]
+    },
+    {
+      "id": "cygnus",
+      "name": "Cygnus",
+      "difficulty": 3,
+      "lore": "The Swan — also known as the Northern Cross. Deneb, its brightest star, is a blue-white supergiant and one of the most luminous stars known, forming the Summer Triangle with Vega and Altair.",
+      "stars": [
+        { "id": 0, "name": "Deneb",        "x": 50.0, "y": 12.0, "magnitude": 1.25 },
+        { "id": 1, "name": "Sadr",         "x": 50.0, "y": 40.0, "magnitude": 2.23 },
+        { "id": 2, "name": "Albireo",      "x": 50.0, "y": 85.0, "magnitude": 3.09 },
+        { "id": 3, "name": "Gienah Cyg",   "x": 20.0, "y": 48.0, "magnitude": 2.46 },
+        { "id": 4, "name": "Delta Cyg",    "x": 80.0, "y": 48.0, "magnitude": 2.87 },
+        { "id": 5, "name": "Zeta Cyg",     "x": 72.0, "y": 68.0, "magnitude": 3.20 },
+        { "id": 6, "name": "Epsilon Cyg",  "x": 28.0, "y": 68.0, "magnitude": 2.48 }
+      ],
+      "connections": [
+        [0, 1], [1, 2], [3, 1], [1, 4], [2, 6], [2, 5]
+      ]
+    }
+  ]
+}
